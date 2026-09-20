@@ -1742,3 +1742,219 @@ a.community-card:hover {
     grid-column: 2;
   }
 }
+
+/* TOKEN V2 — CONTRACT + BUY PANEL */
+
+.token-contract-section {
+  padding: 105px 0;
+}
+
+.token-contract-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.55fr);
+  gap: 28px;
+  align-items: stretch;
+}
+
+.token-contract-copy,
+.token-buy-card {
+  border: 1px solid rgba(92, 192, 255, 0.22);
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(43, 168, 255, 0.08),
+      transparent 40%
+    ),
+    rgba(11, 16, 24, 0.72);
+  border-radius: 28px;
+}
+
+.token-contract-copy {
+  padding: 48px;
+}
+
+.token-contract-copy h2 {
+  margin: 12px 0 14px;
+  font-size: clamp(32px, 4vw, 52px);
+  line-height: 1.05;
+  letter-spacing: -1.5px;
+}
+
+.token-contract-copy > p {
+  margin: 0 0 30px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.contract-box {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+
+  padding: 18px 18px 18px 22px;
+
+  border: 1px solid rgba(92, 192, 255, 0.2);
+  border-radius: 16px;
+
+  background: rgba(4, 8, 13, 0.72);
+}
+
+.contract-box code {
+  min-width: 0;
+  flex: 1;
+
+  color: #dbe8f3;
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.65;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.contract-copy-button {
+  flex-shrink: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  min-width: 100px;
+  height: 44px;
+  padding: 0 16px;
+
+  border: 1px solid rgba(92, 192, 255, 0.25);
+  border-radius: 12px;
+
+  background: rgba(43, 168, 255, 0.1);
+  color: var(--text);
+
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.contract-copy-button:hover {
+  background: rgba(43, 168, 255, 0.17);
+  border-color: rgba(92, 192, 255, 0.48);
+  transform: translateY(-1px);
+}
+
+
+/* BUY CARD */
+
+.token-buy-card {
+  padding: 42px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.token-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  margin-bottom: 24px;
+  padding: 7px 11px;
+
+  border: 1px solid rgba(92, 192, 255, 0.22);
+  border-radius: 999px;
+
+  color: var(--blue-bright);
+  background: rgba(43, 168, 255, 0.08);
+
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.token-live-badge > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--blue-bright);
+  box-shadow: 0 0 12px rgba(92, 192, 255, 0.75);
+}
+
+.token-buy-card h3 {
+  margin: 0 0 12px;
+  font-size: 31px;
+  letter-spacing: -0.7px;
+}
+
+.token-buy-card p {
+  margin: 0 0 26px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.token-buy-card .button {
+  width: 100%;
+  justify-content: center;
+}
+
+.token-buy-card small {
+  display: block;
+  margin-top: 16px;
+
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+
+/* TOKEN RESPONSIVE */
+
+@media (max-width: 900px) {
+  .token-contract-section {
+    padding: 80px 0;
+  }
+
+  .token-contract-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .token-contract-copy,
+  .token-buy-card {
+    padding: 34px;
+  }
+}
+
+@media (max-width: 560px) {
+  .token-contract-section {
+    padding: 65px 0;
+  }
+
+  .token-contract-copy,
+  .token-buy-card {
+    padding: 26px 22px;
+    border-radius: 22px;
+  }
+
+  .contract-box {
+    flex-direction: column;
+    align-items: stretch;
+
+    padding: 18px;
+  }
+
+  .contract-copy-button {
+    width: 100%;
+  }
+
+  .token-buy-card h3 {
+    font-size: 27px;
+  }
+}
