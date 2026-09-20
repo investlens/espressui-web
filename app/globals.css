@@ -1688,3 +1688,57 @@ a.community-card:hover {
     padding-top: 75px;
   }
 }
+
+/* SHARED V2 — BATTLE / FEATURE STEPS */
+
+.battle-points {
+  display: grid;
+  gap: 0;
+  width: 100%;
+}
+
+.battle-points > div {
+  display: grid;
+  grid-template-columns: 54px 130px 1fr;
+  align-items: center;
+  gap: 14px;
+
+  min-height: 82px;
+  padding: 18px 0;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.battle-points > div:last-child {
+  border-bottom: 0;
+}
+
+.battle-points strong {
+  color: var(--blue-bright);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.battle-points span {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.battle-points small {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .battle-points > div {
+    grid-template-columns: 42px 1fr;
+    gap: 6px 12px;
+  }
+
+  .battle-points small {
+    grid-column: 2;
+  }
+}
