@@ -1658,3 +1658,33 @@ a.community-card:hover {
     font-size: 6px;
   }
 }
+
+/* ABOUT PAGE V2 */
+
+.inner-page .page-hero {
+  padding-top: 150px;
+  padding-bottom: 105px;
+}
+
+.inner-page .page-hero .narrow {
+  max-width: 940px;
+}
+
+.inner-page .page-hero h1 {
+  margin: 18px 0 24px;
+}
+
+.inner-page .page-hero + .intro-section {
+  padding-top: 95px;
+}
+
+@media (max-width: 768px) {
+  .inner-page .page-hero {
+    padding-top: 115px;
+    padding-bottom: 75px;
+  }
+
+  .inner-page .page-hero + .intro-section {
+    padding-top: 75px;
+  }
+}
