@@ -1,283 +1,165 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Coffee, RotateCcw, Trophy, Zap } from "lucide-react";
+import { Coffee, Gauge, RotateCcw, Sparkles, Trophy, Zap } from "lucide-react";
 
-type GameState = "ready" | "countdown" | "playing" | "result";
+type Stage = "ready" | "countdown" | "grind" | "pressure" | "pour" | "result";
+type Scores = { grind: number; pressure: number; pour: number };
+const clamp = (n:number,a=0,b=100)=>Math.min(b,Math.max(a,n));
+const empty:Scores={grind:0,pressure:0,pour:0};
 
-function calculateResult(position: number) {
-  const distance = Math.abs(position - 50);
-
-  const score = Math.max(
-    100,
-    Math.round(1000 - distance * 20)
-  );
-
-  if (distance <= 2.5) {
-    return {
-      score,
-      rank: "PERFECT BREW",
-      message: "Coffeyville approves. ☕🔥",
-    };
-  }
-
-  if (distance <= 7.5) {
-    return {
-      score,
-      rank: "EXCELLENT",
-      message: "That was dangerously smooth.",
-    };
-  }
-
-  if (distance <= 17.5) {
-    return {
-      score,
-      rank: "GOOD BREW",
-      message: "Solid cup. Try for the perfect zone.",
-    };
-  }
-
-  if (position < 50) {
-    return {
-      score,
-      rank: "TOO WEAK",
-      message: "Needs another shot.",
-    };
-  }
-
-  return {
-    score,
-    rank: "BURNT",
-    message: "Coffeyville smells smoke. 😎",
-  };
+function title(n:number){
+  if(n>=990)return "LEGENDARY BREW";
+  if(n>=950)return "MASTER BREW";
+  if(n>=900)return "EXCEPTIONAL BREW";
+  if(n>=820)return "GREAT BREW";
+  if(n>=700)return "SOLID BREW";
+  return "KEEP BREWING";
 }
 
-export default function BrewBattleGame() {
-  const [gameState, setGameState] = useState<GameState>("ready");
-  const [position, setPosition] = useState(0);
-  const [direction, setDirection] = useState(1);
-  const [countdown, setCountdown] = useState(3);
-  const [bestScore, setBestScore] = useState(0);
-  const [result, setResult] = useState({
-    score: 0,
-    rank: "",
-    message: "",
-  });
+export default function BrewBattleGame(){
+  const [stage,setStage]=useState<Stage>("ready");
+  const [count,setCount]=useState(3);
+  const [scores,setScores]=useState<Scores>(empty);
+  const [best,setBest]=useState(0);
 
-  const positionRef = useRef(0);
-  const directionRef = useRef(1);
+  const [gPos,setGPos]=useState(0), [gTarget,setGTarget]=useState(50), [gWidth,setGWidth]=useState(12);
+  const gRef=useRef(0), gDir=useRef(1);
 
-  useEffect(() => {
-    if (gameState !== "playing") return;
+  const [pressure,setPressure]=useState(0), [pTarget,setPTarget]=useState(72), [holding,setHolding]=useState(false);
+  const pRef=useRef(0);
 
-    const timer = window.setInterval(() => {
-      let next =
-        positionRef.current + directionRef.current * 1.25;
+  const [pour,setPour]=useState(50), [pourTarget,setPourTarget]=useState(50), [time,setTime]=useState(4.6), [accuracy,setAccuracy]=useState(0);
+  const pourRef=useRef(50), targetRef=useRef(50), samples=useRef({sum:0,n:0}), dragging=useRef(false);
 
-      if (next >= 100) {
-        next = 100;
-        directionRef.current = -1;
-        setDirection(-1);
-      }
+  const total=scores.grind+scores.pressure+scores.pour;
 
-      if (next <= 0) {
-        next = 0;
-        directionRef.current = 1;
-        setDirection(1);
-      }
-
-      positionRef.current = next;
-      setPosition(next);
-    }, 16);
-
-    return () => window.clearInterval(timer);
-  }, [gameState]);
-
-  useEffect(() => {
-    if (gameState !== "countdown") return;
-
-    if (countdown === 0) {
-      positionRef.current = 0;
-      directionRef.current = 1;
-      setPosition(0);
-      setDirection(1);
-      setGameState("playing");
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      setCountdown((value) => value - 1);
-    }, 650);
-
-    return () => window.clearTimeout(timer);
-  }, [countdown, gameState]);
-
-  function startGame() {
-    setCountdown(3);
-    setResult({
-      score: 0,
-      rank: "",
-      message: "",
-    });
-    setGameState("countdown");
+  function start(){
+    setScores(empty); setGTarget(27+Math.random()*46); setGWidth(8+Math.random()*8);
+    setPTarget(62+Math.random()*20); gRef.current=0; gDir.current=1; setGPos(0);
+    pRef.current=0; setPressure(0); setHolding(false);
+    pourRef.current=50; setPour(50); samples.current={sum:0,n:0}; setAccuracy(0); setTime(4.6);
+    setCount(3); setStage("countdown");
   }
 
-  function stopBrew() {
-    if (gameState !== "playing") return;
+  useEffect(()=>{
+    if(stage!=="countdown")return;
+    if(count<=0){setStage("grind");return;}
+    const t=setTimeout(()=>setCount(v=>v-1),550); return()=>clearTimeout(t);
+  },[stage,count]);
 
-    const finalResult = calculateResult(positionRef.current);
+  useEffect(()=>{
+    if(stage!=="grind")return;
+    let id=0,last=performance.now(); const speed=50+Math.random()*20;
+    const tick=(now:number)=>{
+      const dt=Math.min((now-last)/1000,.04); last=now;
+      let x=gRef.current+gDir.current*speed*dt;
+      if(x>=100){x=100;gDir.current=-1} if(x<=0){x=0;gDir.current=1}
+      gRef.current=x; setGPos(x); id=requestAnimationFrame(tick);
+    };
+    id=requestAnimationFrame(tick); return()=>cancelAnimationFrame(id);
+  },[stage]);
 
-    setResult(finalResult);
-
-    setBestScore((previous) =>
-      Math.max(previous, finalResult.score)
-    );
-
-    setGameState("result");
+  function lockGrind(){
+    const d=Math.abs(gRef.current-gTarget), q=clamp(1-d/Math.max(gWidth*1.8,18),0,1);
+    setScores(s=>({...s,grind:Math.round(70+230*Math.pow(q,1.7))})); setStage("pressure");
   }
 
-  const perfect =
-    position >= 42.5 && position <= 57.5;
+  useEffect(()=>{
+    if(stage!=="pressure"||!holding)return;
+    let id=0,last=performance.now();
+    const tick=(now:number)=>{
+      const dt=Math.min((now-last)/1000,.04); last=now;
+      const wobble=pRef.current>55?(Math.random()-.5)*14:0;
+      pRef.current=clamp(pRef.current+(28+pRef.current*.16+wobble)*dt);
+      setPressure(pRef.current);
+      if(pRef.current>=100){releasePressure(true);return}
+      id=requestAnimationFrame(tick);
+    };
+    id=requestAnimationFrame(tick); return()=>cancelAnimationFrame(id);
+  },[stage,holding]);
 
-  return (
-    <div className="brew-game">
-      <div className="brew-game-header">
-        <div>
-          <span className="game-label">
-            PRACTICE BREW
-          </span>
+  function releasePressure(burn=false){
+    if(stage!=="pressure")return;
+    setHolding(false);
+    const d=burn?40:Math.abs(pRef.current-pTarget), q=clamp(1-d/30,0,1);
+    setScores(s=>({...s,pressure:Math.round(80+270*Math.pow(q,1.85))}));
+    setTimeout(()=>setStage("pour"),160);
+  }
 
-          <h2>Perfect the pour.</h2>
+  useEffect(()=>{
+    if(stage!=="pour")return;
+    let id=0,last=performance.now(),elapsed=0;
+    const phase=Math.random()*Math.PI*2, speed=1.1+Math.random()*.5;
+    const tick=(now:number)=>{
+      const dt=Math.min((now-last)/1000,.04); last=now; elapsed+=dt;
+      const t=clamp(50+Math.sin(elapsed*speed*2.2+phase)*27+Math.sin(elapsed*4.1+phase*.4)*7,12,88);
+      targetRef.current=t; setPourTarget(t);
+      const q=clamp(1-Math.abs(pourRef.current-t)/32,0,1);
+      samples.current.sum+=q; samples.current.n++;
+      setAccuracy(Math.round(samples.current.sum/samples.current.n*100));
+      const left=Math.max(0,4.6-elapsed); setTime(left);
+      if(left<=0){
+        const avg=samples.current.sum/Math.max(1,samples.current.n);
+        setScores(s=>({...s,pour:Math.round(60+290*Math.pow(avg,1.55))}));
+        setStage("result"); return;
+      }
+      id=requestAnimationFrame(tick);
+    };
+    id=requestAnimationFrame(tick); return()=>cancelAnimationFrame(id);
+  },[stage]);
 
-          <p>
-            Stop the pressure marker as close to the
-            center of the Perfect Brew zone as possible.
-          </p>
-        </div>
+  useEffect(()=>{if(stage==="result")setBest(b=>Math.max(b,total))},[stage,total]);
 
-        <div className="best-score">
-          <Trophy size={17} />
-          <div>
-            <small>BEST</small>
-            <strong>{bestScore}</strong>
-          </div>
-        </div>
-      </div>
+  function move(x:number,el:HTMLElement){
+    const r=el.getBoundingClientRect(),v=clamp((x-r.left)/r.width*100);
+    pourRef.current=v; setPour(v);
+  }
 
-      <div className="brew-machine">
-        <div className="machine-top">
-          <span>BREW PRESSURE</span>
-
-          <span className={perfect ? "perfect-live" : ""}>
-            {gameState === "playing"
-              ? perfect
-                ? "PERFECT!"
-                : direction > 0
-                  ? "PRESSURE ↑"
-                  : "PRESSURE ↓"
-              : "READY"}
-          </span>
-        </div>
-
-        <div className="brew-track">
-          <div className="zone weak-zone" />
-          <div className="zone good-zone-left" />
-          <div className="zone perfect-brew-zone">
-            <span>PERFECT</span>
-          </div>
-          <div className="zone good-zone-right" />
-          <div className="zone burnt-zone" />
-
-          <div
-            className="brew-needle"
-            style={{ left: `${position}%` }}
-          >
-            <div className="needle-head" />
-          </div>
-        </div>
-
-        <div className="brew-scale">
-          <span>WEAK</span>
-          <span>GOOD</span>
-          <strong>PERFECT BREW</strong>
-          <span>GOOD</span>
-          <span>BURNT</span>
-        </div>
-
-        <div className="game-stage">
-          {gameState === "ready" && (
-            <>
-              <Coffee size={42} />
-              <h3>Ready to brew?</h3>
-              <p>
-                Timing is everything. Aim for the exact
-                center.
-              </p>
-
-              <button
-                className="brew-button"
-                onClick={startGame}
-              >
-                <Zap size={18} />
-                START BREW
-              </button>
-            </>
-          )}
-
-          {gameState === "countdown" && (
-            <div className="countdown">
-              <span>{countdown || "BREW!"}</span>
-            </div>
-          )}
-
-          {gameState === "playing" && (
-            <>
-              <span className="game-live">
-                <span className="live-dot" />
-                BREWING
-              </span>
-
-              <button
-                className="brew-button stop-button"
-                onClick={stopBrew}
-              >
-                ☕ STOP THE BREW
-              </button>
-
-              <small className="tap-hint">
-                Tap when the marker reaches the center
-              </small>
-            </>
-          )}
-
-          {gameState === "result" && (
-            <div className="brew-result">
-              <span className="result-label">
-                {result.rank}
-              </span>
-
-              <strong>{result.score}</strong>
-
-              <small>BREW SCORE</small>
-
-              <p>{result.message}</p>
-
-              <button
-                className="replay-button"
-                onClick={startGame}
-              >
-                <RotateCcw size={16} />
-                BREW AGAIN
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="practice-warning">
-        PRACTICE MODE · Scores are currently stored only
-        for this session and are not eligible for rewards.
-      </div>
+  return <div className="arena-v2">
+    <div className="arena-top">
+      <div><span className="game-label">PRACTICE ARENA · V2</span><h2>Make the perfect brew.</h2><p>Three different skills. One final score. Every run changes.</p></div>
+      <div className="arena-best"><Trophy size={18}/><div><small>PERSONAL BEST</small><strong>{best}</strong></div></div>
     </div>
-  );
+
+    <div className="arena-progress">
+      {(["GRIND","PRESSURE","POUR"] as const).map((n,i)=>{
+        const key=(["grind","pressure","pour"] as const)[i], done=scores[key]>0, active=stage===key;
+        return <div key={n} className={`${active?"active":""} ${done?"complete":""}`}><span>{done?"✓":`0${i+1}`}</span><strong>{n}</strong></div>
+      })}
+    </div>
+
+    <div className="arena-machine">
+      <div className="arena-machine-head"><span>{stage.toUpperCase()}</span><span>{stage==="result"?`${total} / 1000`:"COFFEYVILLE BREW LAB"}</span></div>
+
+      {stage==="ready"&&<div className="arena-screen arena-center"><Coffee size={54}/><h3>Ready for a real brew?</h3><p>React. Hold. Control. Your three scores become one Brew Score.</p><button className="brew-button" onClick={start}><Zap size={18}/> START BREW</button></div>}
+      {stage==="countdown"&&<div className="arena-screen arena-center arena-count"><small>GET READY</small><strong>{count||"BREW!"}</strong></div>}
+
+      {stage==="grind"&&<div className="arena-screen">
+        <div className="stage-title"><div><small>STAGE 01</small><h3>Lock the grind.</h3></div><strong>300 PTS</strong></div>
+        <p className="stage-help">Hit LOCK when the grinder reaches the blue sweet spot.</p>
+        <div className="grind-track"><div className="grind-target" style={{left:`${gTarget-gWidth/2}%`,width:`${gWidth}%`}}/><div className="grind-marker" style={{left:`${gPos}%`}}/><div className="bean-stream">● · • · ● · • · ●</div></div>
+        <button className="brew-button stage-action" onClick={lockGrind}>☕ LOCK GRIND</button>
+      </div>}
+
+      {stage==="pressure"&&<div className="arena-screen">
+        <div className="stage-title"><div><small>STAGE 02</small><h3>Build the pressure.</h3></div><strong>350 PTS</strong></div>
+        <p className="stage-help">Press and hold. Release in the blue zone before it burns.</p>
+        <div className="pressure-row"><div className="pressure-gauge"><div className="pressure-fill" style={{width:`${pressure}%`}}/><div className="pressure-target" style={{left:`${pTarget}%`}}/><div className="pressure-needle" style={{left:`${pressure}%`}}/></div><div className="pressure-readout"><Gauge size={18}/><strong>{Math.round(pressure)} BAR</strong></div></div>
+        <button className={`brew-button stage-action ${holding?"holding":""}`} onPointerDown={()=>setHolding(true)} onPointerUp={()=>holding&&releasePressure()} onPointerCancel={()=>holding&&releasePressure()}>{holding?"RELEASE!":"HOLD FOR PRESSURE"}</button>
+      </div>}
+
+      {stage==="pour"&&<div className="arena-screen">
+        <div className="stage-title"><div><small>STAGE 03</small><h3>Control the pour.</h3></div><strong>350 PTS</strong></div>
+        <p className="stage-help">Move left and right. Keep the stream inside the moving target.</p>
+        <div className="pour-field" onPointerDown={e=>{dragging.current=true;e.currentTarget.setPointerCapture(e.pointerId);move(e.clientX,e.currentTarget)}} onPointerMove={e=>{if(dragging.current||e.pointerType==="mouse")move(e.clientX,e.currentTarget)}} onPointerUp={()=>dragging.current=false} onPointerCancel={()=>dragging.current=false}>
+          <div className="pour-target" style={{left:`${pourTarget}%`}}><span>KEEP HERE</span></div><div className="pour-stream" style={{left:`${pour}%`}}/><div className="pour-cup">☕</div>
+        </div>
+        <div className="pour-stats"><span>ACCURACY <strong>{accuracy}%</strong></span><span>TIME <strong>{time.toFixed(1)}s</strong></span></div>
+      </div>}
+
+      {stage==="result"&&<div className="arena-screen arena-center arena-result"><Sparkles size={32}/><small>BREW COMPLETE</small><h3>{title(total)}</h3><div className="final-score"><strong>{total}</strong><span>/ 1000</span></div><div className="score-breakdown"><div><span>GRIND</span><strong>{scores.grind}<small>/300</small></strong></div><div><span>PRESSURE</span><strong>{scores.pressure}<small>/350</small></strong></div><div><span>POUR</span><strong>{scores.pour}<small>/350</small></strong></div></div><button className="brew-button" onClick={start}><RotateCcw size={17}/> BREW AGAIN</button></div>}
+    </div>
+    <div className="practice-warning">PRACTICE MODE · No wallet, payment or rewards. Competitive scoring will be server-validated.</div>
+  </div>
 }
