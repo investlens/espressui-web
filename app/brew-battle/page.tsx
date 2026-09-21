@@ -5,7 +5,7 @@ import {
   Wallet,
 } from "lucide-react";
 
-import BrewBattleGame from "../../components/game/brew-battle-game";
+import BrewCompetition from "../../components/game/brew-competition";
 
 export default function BrewBattlePage() {
   return (
@@ -25,20 +25,20 @@ export default function BrewBattlePage() {
           <p>
             The Brew Battle demo is now live. Practice your timing,
             master the perfect brew and chase your highest score.
-            Competitive wallet battles, leaderboards and rewards are
-            brewing next.
+            Hourly wallet battles and the live Coffeyville leaderboard are
+            now taking shape.
           </p>
 
           <div className="coming-pill">
           <span className="live-dot" />
-          DEMO LIVE · BATTLE MODE BREWING
+          BREW ARENA LIVE · HOURLY BATTLE
         </div>
         </div>
       </section>
 
       <section className="page-section brew-game-section">
         <div className="container">
-          <BrewBattleGame />
+          <BrewCompetition />
 
           <div className="content-grid battle-info-grid">
             <article className="content-card">

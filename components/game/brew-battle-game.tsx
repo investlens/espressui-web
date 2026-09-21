@@ -17,7 +17,11 @@ function title(n:number){
   return "KEEP BREWING";
 }
 
-export default function BrewBattleGame(){
+export default function BrewBattleGame({
+  onComplete,
+}: {
+  onComplete?: (scores: Scores) => void;
+}){
   const [stage,setStage]=useState<Stage>("ready");
   const [count,setCount]=useState(3);
   const [scores,setScores]=useState<Scores>(empty);
@@ -105,7 +109,11 @@ export default function BrewBattleGame(){
     id=requestAnimationFrame(tick); return()=>cancelAnimationFrame(id);
   },[stage]);
 
-  useEffect(()=>{if(stage==="result")setBest(b=>Math.max(b,total))},[stage,total]);
+  useEffect(()=>{
+    if(stage!=="result") return;
+    setBest(b=>Math.max(b,total));
+    onComplete?.(scores);
+  },[stage]);
 
   function shareScore(){
     const url=`${window.location.origin}/brew-battle`;
