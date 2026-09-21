@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import SuiWallet from "./sui-wallet";
 
 const navigation = [
   { name: "About", href: "/about" },
@@ -30,6 +31,10 @@ export default function SiteHeader() {
             </Link>
           ))}
         </nav>
+
+        <div className="desktop-wallet">
+          <SuiWallet />
+        </div>
 
         <Link
           className="nav-cta desktop-cta"
