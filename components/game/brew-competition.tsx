@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Trophy, Timer, Wallet, Coffee } from "lucide-react";
 import { useCurrentAccount, useDAppKit } from "@mysten/dapp-kit-react";
-import BrewBattleGame from "./brew-battle-game";
+import BrewBattleGame, { type Scores } from "./brew-battle-game";
 
 type Battle = {
   id: string;
@@ -41,6 +41,8 @@ export default function BrewCompetition() {
   const [authenticating, setAuthenticating] = useState(false);
   const [competitiveChallenge, setCompetitiveChallenge] = useState<string | null>(null);
   const [competitiveError, setCompetitiveError] = useState<string | null>(null);
+  const [submittingCompetitive, setSubmittingCompetitive] = useState(false);
+  const [competitiveSuccess, setCompetitiveSuccess] = useState<string | null>(null);
 
   const loadBattle = useCallback(async () => {
     try {
@@ -129,6 +131,7 @@ export default function BrewCompetition() {
 
     setAuthenticating(true);
     setCompetitiveError(null);
+    setCompetitiveSuccess(null);
     setCompetitiveChallenge(null);
 
     try {
@@ -187,6 +190,78 @@ export default function BrewCompetition() {
       );
     } finally {
       setAuthenticating(false);
+    }
+  }
+
+  async function submitCompetitiveScore(scores: Scores) {
+    if (!account?.address || !competitiveChallenge) {
+      setCompetitiveError(
+        "Competitive session is missing. Please authenticate again."
+      );
+      return;
+    }
+
+    if (submittingCompetitive) return;
+
+    setSubmittingCompetitive(true);
+    setCompetitiveError(null);
+    setCompetitiveSuccess(null);
+
+    try {
+      const response = await fetch("/api/competitive/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          challengeId: competitiveChallenge,
+          walletAddress: account.address,
+          scores,
+        }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok || !json.accepted) {
+        throw new Error(
+          json.error || "Competitive score was not accepted."
+        );
+      }
+
+      /*
+       * The challenge is one-use. Kill it immediately in the UI
+       * after the server accepts the attempt.
+       */
+      setCompetitiveChallenge(null);
+
+      setCompetitiveSuccess(
+        `✓ SCORE ACCEPTED · ${json.score} PTS · ATTEMPT ${json.attemptNumber} / 3`
+      );
+
+      /*
+       * Refresh leaderboard/dashboard immediately instead of
+       * waiting for the normal 10-second poll.
+       */
+      await loadLeaderboard();
+    } catch (error) {
+      console.error(
+        "[BrewCompetition] competitive submission:",
+        error
+      );
+
+      setCompetitiveError(
+        error instanceof Error
+          ? error.message
+          : "Competitive submission failed."
+      );
+
+      /*
+       * Do not automatically reuse a failed challenge.
+       * The player can authenticate again if the server rejected it.
+       */
+      setCompetitiveChallenge(null);
+    } finally {
+      setSubmittingCompetitive(false);
     }
   }
 
@@ -286,7 +361,7 @@ export default function BrewCompetition() {
                 ✓ WALLET VERIFIED
               </div>
               <div className="mt-1 text-sm text-white/55">
-                Secure competitive challenge ready. Gameplay validation is the next layer.
+                Secure competitive session ready. Complete the Competitive Arena below to submit this attempt.
               </div>
             </div>
           )}
@@ -296,8 +371,45 @@ export default function BrewCompetition() {
               {competitiveError}
             </div>
           ) : null}
+
+          {competitiveSuccess ? (
+            <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] px-4 py-3 text-sm font-bold text-emerald-200">
+              {competitiveSuccess}
+            </div>
+          ) : null}
         </div>
       </section>
+
+      {competitiveChallenge ? (
+        <section className="rounded-[28px] border border-sky-400/20 bg-sky-400/[0.035] p-5 md:p-8">
+          <div className="mb-5">
+            <div className="text-xs font-bold tracking-[0.2em] text-sky-300">
+              VERIFIED COMPETITIVE RUN
+            </div>
+
+            <h3 className="mt-2 text-2xl font-black text-white">
+              This one counts.
+            </h3>
+
+            <p className="mt-2 text-sm text-white/55">
+              Complete all three stages. A successfully accepted result
+              consumes one of your three hourly attempts.
+            </p>
+          </div>
+
+          {submittingCompetitive ? (
+            <div className="mb-4 rounded-xl border border-sky-400/20 bg-sky-400/[0.06] px-4 py-3 text-sm font-bold text-sky-200">
+              VERIFYING &amp; SUBMITTING BREW...
+            </div>
+          ) : null}
+
+          <BrewBattleGame
+            mode="competitive"
+            disabled={submittingCompetitive}
+            onComplete={submitCompetitiveScore}
+          />
+        </section>
+      ) : null}
 
       <section className="rounded-[28px] border border-white/10 bg-black/20 p-5 md:p-8">
         <div className="mb-6 flex items-center justify-between gap-4">

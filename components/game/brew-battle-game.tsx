@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Coffee, Gauge, RotateCcw, Share2, Sparkles, Trophy, Zap } from "lucide-react";
 
 type Stage = "ready" | "countdown" | "grind" | "pressure" | "pour" | "result";
-type Scores = { grind: number; pressure: number; pour: number };
+export type Scores = { grind: number; pressure: number; pour: number };
 const clamp = (n:number,a=0,b=100)=>Math.min(b,Math.max(a,n));
 const empty:Scores={grind:0,pressure:0,pour:0};
 
@@ -19,8 +19,12 @@ function title(n:number){
 
 export default function BrewBattleGame({
   onComplete,
+  mode = "practice",
+  disabled = false,
 }: {
-  onComplete?: (scores: Scores) => void;
+  onComplete?: (scores: Scores) => void | Promise<void>;
+  mode?: "practice" | "competitive";
+  disabled?: boolean;
 }){
   const [stage,setStage]=useState<Stage>("ready");
   const [count,setCount]=useState(3);
@@ -35,6 +39,7 @@ export default function BrewBattleGame({
   const total=scores.grind+scores.pressure+scores.pour;
 
   function start(){
+    if (disabled) return;
     setScores(empty); setGTarget(27+Math.random()*46); setGWidth(8+Math.random()*8);
     setPTarget(62+Math.random()*20); gRef.current=0; gDir.current=1; setGPos(0);
     pRef.current=0; setPressure(0); setHolding(false);
@@ -101,7 +106,20 @@ export default function BrewBattleGame({
       const left=Math.max(0,4.6-elapsed); setTime(left);
       if(left<=0){
         const avg=samples.current.sum/Math.max(1,samples.current.n);
-        setScores(s=>({...s,pour:Math.round(60+290*Math.pow(avg,1.55))}));
+        const finalPour = Math.round(60+290*Math.pow(avg,1.55));
+
+        setScores(s => {
+          const finalScores = { ...s, pour: finalPour };
+
+          if (onComplete) {
+            Promise.resolve(onComplete(finalScores)).catch(error => {
+              console.error("[BrewBattleGame] completion failed:", error);
+            });
+          }
+
+          return finalScores;
+        });
+
         setStage("result"); return;
       }
       id=requestAnimationFrame(tick);
@@ -112,8 +130,7 @@ export default function BrewBattleGame({
   useEffect(()=>{
     if(stage!=="result") return;
     setBest(b=>Math.max(b,total));
-    onComplete?.(scores);
-  },[stage]);
+  },[stage,total]);
 
   function shareScore(){
     const url=`${window.location.origin}/brew-battle`;
@@ -128,7 +145,7 @@ export default function BrewBattleGame({
 
   return <div className="arena-v2">
     <div className="arena-top">
-      <div><span className="game-label">PRACTICE ARENA · V2</span><h2>Make the perfect brew.</h2><p>Three different skills. One final score. Every run changes.</p></div>
+      <div><span className="game-label">{mode==="competitive"?"COMPETITIVE ARENA · VERIFIED":"PRACTICE ARENA · V2"}</span><h2>Make the perfect brew.</h2><p>Three different skills. One final score. Every run changes.</p></div>
       <div className="arena-best"><Trophy size={18}/><div><small>PERSONAL BEST</small><strong>{best}</strong></div></div>
     </div>
     <div className="arena-progress">
@@ -139,13 +156,13 @@ export default function BrewBattleGame({
     </div>
     <div className="arena-machine">
       <div className="arena-machine-head"><span>{stage.toUpperCase()}</span><span>{stage==="result"?`${total} / 1000`:"COFFEYVILLE BREW LAB"}</span></div>
-      {stage==="ready"&&<div className="arena-screen arena-center"><Coffee size={54}/><h3>Ready for a real brew?</h3><p>React. Hold. Control. Your three scores become one Brew Score.</p><button className="brew-button" onClick={start}><Zap size={18}/> START BREW</button></div>}
+      {stage==="ready"&&<div className="arena-screen arena-center"><Coffee size={54}/><h3>Ready for a real brew?</h3><p>React. Hold. Control. Your three scores become one Brew Score.</p><button className="brew-button" onClick={start} disabled={disabled}><Zap size={18}/> {mode==="competitive"?"BEGIN COMPETITIVE BREW":"START BREW"}</button></div>}
       {stage==="countdown"&&<div className="arena-screen arena-center arena-count"><small>GET READY</small><strong>{count||"BREW!"}</strong></div>}
       {stage==="grind"&&<div className="arena-screen"><div className="stage-title"><div><small>STAGE 01</small><h3>Lock the grind.</h3></div><strong>300 PTS</strong></div><p className="stage-help">Hit LOCK when the grinder reaches the blue sweet spot.</p><div className="grind-track"><div className="grind-target" style={{left:`${gTarget-gWidth/2}%`,width:`${gWidth}%`}}/><div className="grind-marker" style={{left:`${gPos}%`}}/><div className="bean-stream">● · • · ● · • · ●</div></div><button className="brew-button stage-action" onClick={lockGrind}>☕ LOCK GRIND</button></div>}
       {stage==="pressure"&&<div className="arena-screen"><div className="stage-title"><div><small>STAGE 02</small><h3>Build the pressure.</h3></div><strong>350 PTS</strong></div><p className="stage-help">Press and hold. Release in the blue zone before it burns.</p><div className="pressure-row"><div className="pressure-gauge"><div className="pressure-fill" style={{width:`${pressure}%`}}/><div className="pressure-target" style={{left:`${pTarget}%`}}/><div className="pressure-needle" style={{left:`${pressure}%`}}/></div><div className="pressure-readout"><Gauge size={18}/><strong>{Math.round(pressure)} BAR</strong></div></div><button className={`brew-button stage-action ${holding?"holding":""}`} onPointerDown={()=>setHolding(true)} onPointerUp={()=>holding&&releasePressure()} onPointerCancel={()=>holding&&releasePressure()}>{holding?"RELEASE!":"HOLD FOR PRESSURE"}</button></div>}
       {stage==="pour"&&<div className="arena-screen"><div className="stage-title"><div><small>STAGE 03</small><h3>Control the pour.</h3></div><strong>350 PTS</strong></div><p className="stage-help">Move left and right. Keep the stream inside the moving target.</p><div className="pour-field" onPointerDown={e=>{dragging.current=true;e.currentTarget.setPointerCapture(e.pointerId);move(e.clientX,e.currentTarget)}} onPointerMove={e=>{if(dragging.current||e.pointerType==="mouse")move(e.clientX,e.currentTarget)}} onPointerUp={()=>dragging.current=false} onPointerCancel={()=>dragging.current=false}><div className="pour-target" style={{left:`${pourTarget}%`}}><span>KEEP HERE</span></div><div className="pour-stream" style={{left:`${pour}%`}}/><div className="pour-cup">☕</div></div><div className="pour-stats"><span>ACCURACY <strong>{accuracy}%</strong></span><span>TIME <strong>{time.toFixed(1)}s</strong></span></div></div>}
       {stage==="result"&&<div className="arena-screen arena-center arena-result"><Sparkles size={32}/><small>BREW COMPLETE</small><h3>{title(total)}</h3><div className="final-score"><strong>{total}</strong><span>/ 1000</span></div><div className="score-breakdown"><div><span>GRIND</span><strong>{scores.grind}<small>/300</small></strong></div><div><span>PRESSURE</span><strong>{scores.pressure}<small>/350</small></strong></div><div><span>POUR</span><strong>{scores.pour}<small>/350</small></strong></div></div><div className="result-actions"><button className="brew-button" onClick={start}><RotateCcw size={17}/> BREW AGAIN</button><button className="brew-button share-score-button" onClick={shareScore}><Share2 size={17}/> SHARE SCORE ON X</button></div></div>}
     </div>
-    <div className="practice-warning">PRACTICE MODE · No wallet, payment or rewards. Competitive scoring will be server-validated.</div>
+    <div className="practice-warning">{mode==="competitive"?"COMPETITIVE MODE · Wallet authenticated · Result requires server acceptance.":"PRACTICE MODE · No wallet, payment or rewards. Competitive scoring will be server-validated."}</div>
   </div>
 }
