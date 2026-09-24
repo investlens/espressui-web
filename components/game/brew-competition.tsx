@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Trophy, Timer, Wallet, Coffee } from "lucide-react";
-import { useCurrentAccount } from "@mysten/dapp-kit-react";
+import { useCurrentAccount, useDAppKit } from "@mysten/dapp-kit-react";
 import BrewBattleGame from "./brew-battle-game";
 
 type Battle = {
@@ -32,11 +32,15 @@ function formatTime(seconds: number) {
 
 export default function BrewCompetition() {
   const account = useCurrentAccount();
+  const dAppKit = useDAppKit();
 
   const [battle, setBattle] = useState<Battle | null>(null);
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [remaining, setRemaining] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [authenticating, setAuthenticating] = useState(false);
+  const [competitiveChallenge, setCompetitiveChallenge] = useState<string | null>(null);
+  const [competitiveError, setCompetitiveError] = useState<string | null>(null);
 
   const loadBattle = useCallback(async () => {
     try {
@@ -117,6 +121,75 @@ export default function BrewCompetition() {
     return () => window.clearInterval(timer);
   }, [loadLeaderboard]);
 
+  async function startCompetitive() {
+    if (!account?.address) {
+      setCompetitiveError("Connect your Sui wallet first.");
+      return;
+    }
+
+    setAuthenticating(true);
+    setCompetitiveError(null);
+    setCompetitiveChallenge(null);
+
+    try {
+      const challengeResponse = await fetch("/api/competitive/challenge", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          walletAddress: account.address,
+        }),
+      });
+
+      const challenge = await challengeResponse.json();
+
+      if (!challengeResponse.ok) {
+        throw new Error(
+          challenge.error || "Unable to create competitive challenge."
+        );
+      }
+
+      const signed = await dAppKit.signPersonalMessage({
+        message: new TextEncoder().encode(challenge.message),
+        account,
+        network: "mainnet",
+      });
+
+      const verifyResponse = await fetch("/api/competitive/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          challengeId: challenge.challengeId,
+          walletAddress: account.address,
+          signature: signed.signature,
+        }),
+      });
+
+      const verified = await verifyResponse.json();
+
+      if (!verifyResponse.ok || !verified.authenticated) {
+        throw new Error(
+          verified.error || "Wallet authentication failed."
+        );
+      }
+
+      setCompetitiveChallenge(verified.challengeId);
+    } catch (error) {
+      console.error("[BrewCompetition] competitive auth:", error);
+
+      setCompetitiveError(
+        error instanceof Error
+          ? error.message
+          : "Unable to start competitive brew."
+      );
+    } finally {
+      setAuthenticating(false);
+    }
+  }
+
   const walletAddress = account?.address ?? null;
 
   const ownIndex = walletAddress
@@ -191,9 +264,38 @@ export default function BrewCompetition() {
             : "Connect your Sui wallet to enter competitive rounds."}
         </div>
 
-        <div className="mt-5 rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] px-4 py-3 text-sm text-white/60">
-          Competitive submissions are being secured with wallet signatures and
-          server validation before score entry is enabled.
+        <div className="mt-5">
+          {!competitiveChallenge ? (
+            <button
+              type="button"
+              onClick={startCompetitive}
+              disabled={!walletAddress || authenticating || (own?.attempts_played ?? 0) >= 3}
+              className="w-full rounded-2xl bg-sky-400 px-5 py-4 font-black text-slate-950 transition hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {authenticating
+                ? "VERIFYING WALLET..."
+                : !walletAddress
+                ? "CONNECT WALLET TO COMPETE"
+                : (own?.attempts_played ?? 0) >= 3
+                ? "3 / 3 ATTEMPTS USED"
+                : `START COMPETITIVE BREW · ${3 - (own?.attempts_played ?? 0)} LEFT`}
+            </button>
+          ) : (
+            <div className="rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.06] px-4 py-4">
+              <div className="font-black text-emerald-300">
+                ✓ WALLET VERIFIED
+              </div>
+              <div className="mt-1 text-sm text-white/55">
+                Secure competitive challenge ready. Gameplay validation is the next layer.
+              </div>
+            </div>
+          )}
+
+          {competitiveError ? (
+            <div className="mt-3 rounded-xl border border-red-400/20 bg-red-400/[0.06] px-4 py-3 text-sm text-red-200">
+              {competitiveError}
+            </div>
+          ) : null}
         </div>
       </section>
 
