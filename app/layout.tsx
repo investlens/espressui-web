@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+
 import "./globals.css";
-import SiteHeader from "../components/site-header";
-import SiteFooter from "../components/site-footer";
+
+import ClientBoundary from "../components/client-boundary";
 
 export const metadata: Metadata = {
   title: {
@@ -20,9 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <SiteHeader />
-        <main>{children}</main>
-        <SiteFooter />
+        <ClientBoundary>{children}</ClientBoundary>
       </body>
     </html>
   );

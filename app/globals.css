@@ -1985,3 +1985,42 @@ a.community-card:hover {
   .result-actions { width: 100%; }
   .result-actions .brew-button { width: 100%; justify-content: center; }
 }
+
+/* ESPRESSUI SUI WALLET */
+.desktop-wallet {
+  display: flex;
+  align-items: center;
+}
+
+.espressui-wallet {
+  display: flex;
+  align-items: center;
+}
+
+.espressui-wallet button {
+  min-height: 42px;
+  border-radius: 999px !important;
+  border: 1px solid rgba(92, 192, 255, 0.4) !important;
+  background: rgba(43, 168, 255, 0.08) !important;
+  color: var(--text) !important;
+  font-family: inherit !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.04em !important;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease !important;
+}
+
+.espressui-wallet button:hover {
+  border-color: var(--blue-bright) !important;
+  background: rgba(43, 168, 255, 0.15) !important;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 900px) {
+  .desktop-wallet {
+    display: none;
+  }
+}
