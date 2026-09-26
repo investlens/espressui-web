@@ -64,6 +64,10 @@ export default function SiteHeader() {
             </Link>
           ))}
 
+          <div className="mobile-wallet">
+            <SuiWallet />
+          </div>
+
           <Link
             href="/brew-battle"
             className="nav-cta"
