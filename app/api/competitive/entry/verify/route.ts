@@ -45,13 +45,26 @@ export async function POST(request: Request) {
       );
     }
 
-    if (
-      message === "ENTRY_TRANSACTION_FAILED" ||
-      message === "ENTRY_WALLET_MISMATCH" ||
-      message === "ENTRY_AMOUNT_MISMATCH"
-    ) {
+    if (message === "ENTRY_TRANSACTION_FAILED") {
+      console.warn("[BrewTestnetEntry] transaction failed or unavailable");
       return NextResponse.json(
-        { error: "Testnet entry transaction could not be verified." },
+        { error: "The testnet transaction was not successful or is not available yet." },
+        { status: 400 }
+      );
+    }
+
+    if (message === "ENTRY_WALLET_MISMATCH") {
+      console.warn("[BrewTestnetEntry] connected wallet did not match transaction sender");
+      return NextResponse.json(
+        { error: "The transaction sender does not match the connected wallet." },
+        { status: 400 }
+      );
+    }
+
+    if (message === "ENTRY_AMOUNT_MISMATCH") {
+      console.warn("[BrewTestnetEntry] treasury did not receive exactly 0.1 test SUI");
+      return NextResponse.json(
+        { error: "The treasury did not receive exactly 0.1 test SUI." },
         { status: 400 }
       );
     }
