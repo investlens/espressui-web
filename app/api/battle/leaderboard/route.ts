@@ -80,8 +80,10 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b.best_score - a.best_score)
     .slice(0, 100);
 
+  const totalVerifiedEntries = (data ?? []).length;
+
   return NextResponse.json(
-    { leaderboard },
+    { leaderboard, totalVerifiedEntries },
     {
       headers: {
         "Cache-Control": "no-store, max-age=0",
