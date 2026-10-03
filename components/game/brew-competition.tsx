@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Trophy, Timer, Wallet, Coffee } from "lucide-react";
 import { useCurrentAccount, useDAppKit } from "@mysten/dapp-kit-react";
 import BrewBattleGame, { type Scores } from "./brew-battle-game";
+import TestnetEntry from "./testnet-entry";
 
 type Battle = {
   id: string;
@@ -43,6 +44,8 @@ export default function BrewCompetition() {
   const [competitiveError, setCompetitiveError] = useState<string | null>(null);
   const [submittingCompetitive, setSubmittingCompetitive] = useState(false);
   const [competitiveSuccess, setCompetitiveSuccess] = useState<string | null>(null);
+  const [testnetEntryDigest, setTestnetEntryDigest] = useState<string | null>(null);
+  const paidBetaEnabled = process.env.NEXT_PUBLIC_BREW_TESTNET_PAYMENTS === "true";
 
   const loadBattle = useCallback(async () => {
     try {
@@ -338,6 +341,19 @@ export default function BrewCompetition() {
             ? `Connected: ${shortWallet(walletAddress)}`
             : "Connect your Sui wallet to enter competitive rounds."}
         </div>
+
+        {paidBetaEnabled ? (
+          <div className="mt-5">
+            <TestnetEntry onPaid={setTestnetEntryDigest} />
+
+            {testnetEntryDigest ? (
+              <div className="mt-2 text-xs text-white/40">
+                Test payment recorded in this browser. Competitive entry remains
+                locked until server-side transaction verification is enabled.
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="mt-5">
           {!competitiveChallenge ? (
