@@ -3,10 +3,11 @@ import { SuiGrpcClient } from "@mysten/sui/grpc";
 
 const GRPC_URLS = {
   mainnet: "https://fullnode.mainnet.sui.io:443",
+  testnet: "https://fullnode.testnet.sui.io:443",
 } as const;
 
 export const dAppKit = createDAppKit({
-  networks: ["mainnet"],
+  networks: ["mainnet", "testnet"],
   defaultNetwork: "mainnet",
 
   createClient(network) {
