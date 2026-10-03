@@ -441,10 +441,13 @@ export default function BrewCompetition() {
               </div>
               <div className="mt-1 text-sm text-white/55">
                 {eligibleBrewers <= 1
-                  ? "1 eligible brewer · 95% to the winner"
+                  ? "1 eligible brewer now · 1 winner if the round ended now"
                   : eligibleBrewers === 2
-                  ? "2 eligible brewers · 95% split between 1st and 2nd"
-                  : "95% to the top 3 · 5% supports the EspresSUI ecosystem"}
+                  ? "2 eligible brewers now · 2 winners if the round ended now"
+                  : `${eligibleBrewers} eligible brewers now · top 3 win if the round ended now`}
+              </div>
+              <div className="mt-1 text-xs text-white/35">
+                3+ unique brewers → 3 winners · 2 brewers → 2 winners · 1 brewer → 1 winner
               </div>
             </div>
             <div className="text-xs font-bold text-sky-300">
@@ -475,12 +478,12 @@ export default function BrewCompetition() {
               <PrizeStat label="🥉 3RD · 25%" value={thirdPrizeSui} />
             ) : null}
 
-            <PrizeStat label="🔥 BURN · 2.5%" value={buybackBurnSui} />
+            <PrizeStat label="🔥 BUYBACK & BURN · 2.5%" value={buybackBurnSui} />
             <PrizeStat label="📣 MARKETING · 2.5%" value={marketingSui} />
           </div>
 
           <div className="mt-3 text-[11px] leading-5 text-white/35">
-            Testnet beta: payouts adjust automatically to the number of unique eligible brewers in the current hourly round. The live pool currently updates from completed verified competitive entries.
+            Payouts adjust automatically to the number of unique eligible brewers. 95% always goes to eligible winners; 2.5% is allocated to ESPRESSUI buyback & burn and 2.5% to marketing. Buyback & burn is planned to be executed periodically from the treasury, with burn transactions shared publicly. Testnet beta: the live pool currently updates from completed verified competitive entries.
           </div>
         </div>
 
