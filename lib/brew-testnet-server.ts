@@ -1,5 +1,4 @@
 import { SuiGrpcClient } from "@mysten/sui/grpc";
-import { normalizeSuiAddress } from "@mysten/sui/utils";
 
 export const BREW_TESTNET_ENTRY_MIST = 100_000_000n;
 export const SUI_COIN_TYPE = "0x2::sui::SUI";
@@ -13,7 +12,7 @@ function configuredTreasury() {
     throw new Error("BREW_TESTNET_TREASURY_NOT_CONFIGURED");
   }
 
-  return normalizeSuiAddress(treasury);
+  return treasury.toLowerCase();
 }
 
 export async function verifyBrewTestnetEntry({
@@ -24,7 +23,7 @@ export async function verifyBrewTestnetEntry({
   walletAddress: string;
 }) {
   const treasury = configuredTreasury();
-  const wallet = normalizeSuiAddress(walletAddress);
+  const wallet = walletAddress.toLowerCase();
 
   const client = new SuiGrpcClient({
     network: "testnet",
@@ -47,7 +46,7 @@ export async function verifyBrewTestnetEntry({
   const transaction = result.Transaction;
   const sender = transaction.transaction?.sender;
 
-  if (!sender || normalizeSuiAddress(sender) !== wallet) {
+  if (!sender || sender.toLowerCase() !== wallet) {
     throw new Error("ENTRY_WALLET_MISMATCH");
   }
 
@@ -55,7 +54,7 @@ export async function verifyBrewTestnetEntry({
     .filter(
       (change) =>
         change.coinType === SUI_COIN_TYPE &&
-        normalizeSuiAddress(change.address) === treasury &&
+        change.address.toLowerCase() === treasury &&
         BigInt(change.amount) > 0n
     )
     .reduce((sum, change) => sum + BigInt(change.amount), 0n);
