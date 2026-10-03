@@ -125,7 +125,9 @@ export default function BrewCompetition() {
       return;
     }
 
-    const storageKey = paidEntryStorageKey(account.address, battle.id);
+    const walletAddressForRecovery = account.address;
+    const battleIdForRecovery = battle.id;
+    const storageKey = paidEntryStorageKey(walletAddressForRecovery, battleIdForRecovery);
     const savedDigest = window.localStorage.getItem(storageKey);
 
     if (!savedDigest) {
@@ -145,7 +147,7 @@ export default function BrewCompetition() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            walletAddress: account.address,
+            walletAddress: walletAddressForRecovery,
             digest: digestToRecover,
           }),
         });
