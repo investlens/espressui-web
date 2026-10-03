@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { ShieldCheck, WalletCards } from "lucide-react";
 import { useCurrentAccount, useDAppKit } from "@mysten/dapp-kit-react";
-import { Transaction } from "@mysten/sui/transactions";
+import { coinWithBalance, Transaction } from "@mysten/sui/transactions";
 
-const ENTRY_MIST = 100_000_000n;
+const ENTRY_MIST = 100_000_000;
 const ENTRY_SUI = "0.1";
 
 type Props = {
@@ -48,13 +48,12 @@ export default function TestnetEntry({ onPaid }: Props) {
       const tx = new Transaction();
 
       tx.transferObjects(
-        [tx.coin({ balance: ENTRY_MIST })],
+        [coinWithBalance({ balance: ENTRY_MIST })],
         treasury
       );
 
       const result = await dAppKit.signAndExecuteTransaction({
         transaction: tx,
-        account,
         network: "testnet",
       });
 
