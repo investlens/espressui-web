@@ -1,6 +1,6 @@
 import { SuiGrpcClient } from "@mysten/sui/grpc";
 
-export const BREW_TESTNET_ENTRY_MIST = 100_000_000n;
+export const BREW_TESTNET_ENTRY_MIST = BigInt("100000000");
 export const SUI_COIN_TYPE = "0x2::sui::SUI";
 
 const TESTNET_RPC = "https://fullnode.testnet.sui.io:443";
@@ -55,9 +55,9 @@ export async function verifyBrewTestnetEntry({
       (change) =>
         change.coinType === SUI_COIN_TYPE &&
         change.address.toLowerCase() === treasury &&
-        BigInt(change.amount) > 0n
+        BigInt(change.amount) > BigInt(0)
     )
-    .reduce((sum, change) => sum + BigInt(change.amount), 0n);
+    .reduce((sum, change) => sum + BigInt(change.amount), BigInt(0));
 
   if (treasuryCredit !== BREW_TESTNET_ENTRY_MIST) {
     throw new Error("ENTRY_AMOUNT_MISMATCH");
