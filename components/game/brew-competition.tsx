@@ -358,11 +358,26 @@ export default function BrewCompetition() {
   const cutoff = leaders.length >= 10 ? leaders[9].best_score : null;
 
   const livePoolSui = totalVerifiedEntries * 0.1;
-  const firstPrizeSui = livePoolSui * 0.4;
-  const secondPrizeSui = livePoolSui * 0.3;
-  const thirdPrizeSui = livePoolSui * 0.25;
+  const eligibleBrewers = leaders.length;
+
   const buybackBurnSui = livePoolSui * 0.025;
   const marketingSui = livePoolSui * 0.025;
+
+  const firstPrizeSui =
+    eligibleBrewers <= 1
+      ? livePoolSui * 0.95
+      : eligibleBrewers === 2
+      ? livePoolSui * 0.525
+      : livePoolSui * 0.4;
+
+  const secondPrizeSui =
+    eligibleBrewers === 2
+      ? livePoolSui * 0.425
+      : eligibleBrewers >= 3
+      ? livePoolSui * 0.3
+      : 0;
+
+  const thirdPrizeSui = eligibleBrewers >= 3 ? livePoolSui * 0.25 : 0;
 
   return (
     <div className="space-y-8">
@@ -425,7 +440,11 @@ export default function BrewCompetition() {
                 CURRENT ROUND PAYOUTS
               </div>
               <div className="mt-1 text-sm text-white/55">
-                95% to the top 3 · 5% supports the EspresSUI ecosystem
+                {eligibleBrewers <= 1
+                  ? "1 eligible brewer · 95% to the winner"
+                  : eligibleBrewers === 2
+                  ? "2 eligible brewers · 95% split between 1st and 2nd"
+                  : "95% to the top 3 · 5% supports the EspresSUI ecosystem"}
               </div>
             </div>
             <div className="text-xs font-bold text-sky-300">
@@ -434,15 +453,34 @@ export default function BrewCompetition() {
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-5">
-            <PrizeStat label="🥇 1ST · 40%" value={firstPrizeSui} />
-            <PrizeStat label="🥈 2ND · 30%" value={secondPrizeSui} />
-            <PrizeStat label="🥉 3RD · 25%" value={thirdPrizeSui} />
+            <PrizeStat
+              label={
+                eligibleBrewers <= 1
+                  ? "🥇 WINNER · 95%"
+                  : eligibleBrewers === 2
+                  ? "🥇 1ST · 52.5%"
+                  : "🥇 1ST · 40%"
+              }
+              value={firstPrizeSui}
+            />
+
+            {eligibleBrewers >= 2 ? (
+              <PrizeStat
+                label={eligibleBrewers === 2 ? "🥈 2ND · 42.5%" : "🥈 2ND · 30%"}
+                value={secondPrizeSui}
+              />
+            ) : null}
+
+            {eligibleBrewers >= 3 ? (
+              <PrizeStat label="🥉 3RD · 25%" value={thirdPrizeSui} />
+            ) : null}
+
             <PrizeStat label="🔥 BURN · 2.5%" value={buybackBurnSui} />
             <PrizeStat label="📣 MARKETING · 2.5%" value={marketingSui} />
           </div>
 
           <div className="mt-3 text-[11px] leading-5 text-white/35">
-            Testnet beta: the live pool currently updates from completed verified competitive entries for this hourly round.
+            Testnet beta: payouts adjust automatically to the number of unique eligible brewers in the current hourly round. The live pool currently updates from completed verified competitive entries.
           </div>
         </div>
 
