@@ -1,7 +1,6 @@
 import { SuiGrpcClient } from "@mysten/sui/grpc";
 
 export const BREW_TESTNET_ENTRY_MIST = BigInt("100000000");
-export const SUI_COIN_TYPE = "0x2::sui::SUI";
 
 const TESTNET_RPC = "https://fullnode.testnet.sui.io:443";
 
@@ -13,6 +12,14 @@ function configuredTreasury() {
   }
 
   return treasury.toLowerCase();
+}
+
+function isSuiCoinType(coinType: string) {
+  const match = /^0x([0-9a-fA-F]+)::sui::SUI$/.exec(coinType);
+  if (!match) return false;
+
+  const packageHex = match[1].replace(/^0+/, "") || "0";
+  return packageHex.toLowerCase() === "2";
 }
 
 export async function verifyBrewTestnetEntry({
@@ -30,8 +37,7 @@ export async function verifyBrewTestnetEntry({
     baseUrl: TESTNET_RPC,
   });
 
-  // The wallet can return a digest before indexed reads are ready.
-  // Wait for the testnet node to expose the transaction before verifying it.
+  // A wallet can return a digest before indexed reads are ready.
   await client.waitForTransaction({
     digest,
     timeout: 15_000,
@@ -60,13 +66,22 @@ export async function verifyBrewTestnetEntry({
   const treasuryCredit = (transaction.balanceChanges ?? [])
     .filter(
       (change) =>
-        change.coinType === SUI_COIN_TYPE &&
+        isSuiCoinType(change.coinType) &&
         change.address.toLowerCase() === treasury &&
         BigInt(change.amount) > BigInt(0)
     )
     .reduce((sum, change) => sum + BigInt(change.amount), BigInt(0));
 
   if (treasuryCredit !== BREW_TESTNET_ENTRY_MIST) {
+    console.warn("[BrewTestnetEntry] amount mismatch", {
+      expected: BREW_TESTNET_ENTRY_MIST.toString(),
+      observedTreasuryCredit: treasuryCredit.toString(),
+      balanceChanges: (transaction.balanceChanges ?? []).map((change) => ({
+        address: change.address,
+        coinType: change.coinType,
+        amount: change.amount,
+      })),
+    });
     throw new Error("ENTRY_AMOUNT_MISMATCH");
   }
 
