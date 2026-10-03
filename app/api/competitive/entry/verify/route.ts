@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { verifyBrewTestnetEntry } from "../../../../lib/brew-testnet-server";
+import { verifyBrewTestnetEntry } from "../../../../../lib/brew-testnet-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
