@@ -45,8 +45,32 @@ export default function BrewCompetition() {
   const [submittingCompetitive, setSubmittingCompetitive] = useState(false);
   const [competitiveSuccess, setCompetitiveSuccess] = useState<string | null>(null);
   const [testnetEntryDigest, setTestnetEntryDigest] = useState<string | null>(null);
+  const [recoveringPaidEntry, setRecoveringPaidEntry] = useState(false);
   const paidBetaEnabled = process.env.NEXT_PUBLIC_BREW_TESTNET_PAYMENTS === "true";
   const paidEntryRequired = paidBetaEnabled && !testnetEntryDigest;
+
+  function paidEntryStorageKey(wallet: string, battleId: string) {
+    return `brew:testnet-entry:${battleId}:${wallet.toLowerCase()}`;
+  }
+
+  function rememberPaidEntry(digest: string) {
+    if (!account?.address || !battle?.id) return;
+
+    window.localStorage.setItem(
+      paidEntryStorageKey(account.address, battle.id),
+      digest
+    );
+    setTestnetEntryDigest(digest);
+  }
+
+  function forgetPaidEntry() {
+    if (account?.address && battle?.id) {
+      window.localStorage.removeItem(
+        paidEntryStorageKey(account.address, battle.id)
+      );
+    }
+    setTestnetEntryDigest(null);
+  }
 
   const loadBattle = useCallback(async () => {
     try {
@@ -97,8 +121,59 @@ export default function BrewCompetition() {
   }, [loadBattle]);
 
   useEffect(() => {
-    setTestnetEntryDigest(null);
-  }, [account?.address, battle?.id]);
+    if (!paidBetaEnabled || !account?.address || !battle?.id) {
+      setTestnetEntryDigest(null);
+      return;
+    }
+
+    const storageKey = paidEntryStorageKey(account.address, battle.id);
+    const savedDigest = window.localStorage.getItem(storageKey);
+
+    if (!savedDigest) {
+      setTestnetEntryDigest(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function recoverPaidEntry() {
+      setRecoveringPaidEntry(true);
+
+      try {
+        const response = await fetch("/api/competitive/entry/verify", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            walletAddress: account.address,
+            digest: savedDigest,
+          }),
+        });
+
+        const verified = await response.json();
+
+        if (!response.ok || !verified.verified) {
+          window.localStorage.removeItem(storageKey);
+          if (!cancelled) setTestnetEntryDigest(null);
+          return;
+        }
+
+        if (!cancelled) setTestnetEntryDigest(savedDigest);
+      } catch (error) {
+        console.error("[BrewCompetition] paid entry recovery failed:", error);
+        if (!cancelled) setTestnetEntryDigest(null);
+      } finally {
+        if (!cancelled) setRecoveringPaidEntry(false);
+      }
+    }
+
+    recoverPaidEntry();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [paidBetaEnabled, account?.address, battle?.id]);
 
   useEffect(() => {
     if (!battle) return;
@@ -242,7 +317,7 @@ export default function BrewCompetition() {
        */
       setCompetitiveChallenge(null);
       if (paidBetaEnabled) {
-        setTestnetEntryDigest(null);
+        forgetPaidEntry();
       }
 
       setCompetitiveSuccess(
@@ -352,9 +427,13 @@ export default function BrewCompetition() {
 
         {paidBetaEnabled ? (
           <div className="mt-5">
-            <TestnetEntry onPaid={setTestnetEntryDigest} />
+            <TestnetEntry onPaid={rememberPaidEntry} />
 
-            {testnetEntryDigest ? (
+            {recoveringPaidEntry ? (
+              <div className="mt-2 text-xs text-sky-300/80">
+                Checking your previous verified test payment...
+              </div>
+            ) : testnetEntryDigest ? (
               <div className="mt-2 text-xs font-bold text-emerald-300/80">
                 ✓ Server verified the 0.1 test SUI payment. This payment unlocks one competitive attempt in this browser session.
               </div>
@@ -371,10 +450,12 @@ export default function BrewCompetition() {
             <button
               type="button"
               onClick={startCompetitive}
-              disabled={!walletAddress || authenticating || paidEntryRequired || (own?.attempts_played ?? 0) >= 3}
+              disabled={!walletAddress || authenticating || recoveringPaidEntry || paidEntryRequired || (own?.attempts_played ?? 0) >= 3}
               className="w-full rounded-2xl bg-sky-400 px-5 py-4 font-black text-slate-950 transition hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {authenticating
+              {recoveringPaidEntry
+                ? "RESTORING VERIFIED PAYMENT..."
+                : authenticating
                 ? "VERIFYING WALLET..."
                 : !walletAddress
                 ? "CONNECT WALLET TO COMPETE"
