@@ -46,6 +46,7 @@ export default function BrewCompetition() {
   const [competitiveSuccess, setCompetitiveSuccess] = useState<string | null>(null);
   const [testnetEntryDigest, setTestnetEntryDigest] = useState<string | null>(null);
   const paidBetaEnabled = process.env.NEXT_PUBLIC_BREW_TESTNET_PAYMENTS === "true";
+  const paidEntryRequired = paidBetaEnabled && !testnetEntryDigest;
 
   const loadBattle = useCallback(async () => {
     try {
@@ -94,6 +95,10 @@ export default function BrewCompetition() {
   useEffect(() => {
     loadBattle();
   }, [loadBattle]);
+
+  useEffect(() => {
+    setTestnetEntryDigest(null);
+  }, [account?.address, battle?.id]);
 
   useEffect(() => {
     if (!battle) return;
@@ -236,6 +241,9 @@ export default function BrewCompetition() {
        * after the server accepts the attempt.
        */
       setCompetitiveChallenge(null);
+      if (paidBetaEnabled) {
+        setTestnetEntryDigest(null);
+      }
 
       setCompetitiveSuccess(
         `✓ SCORE ACCEPTED · ${json.score} PTS · ATTEMPT ${json.attemptNumber} / 3`
@@ -347,11 +355,14 @@ export default function BrewCompetition() {
             <TestnetEntry onPaid={setTestnetEntryDigest} />
 
             {testnetEntryDigest ? (
-              <div className="mt-2 text-xs text-white/40">
-                Test payment recorded in this browser. Competitive entry remains
-                locked until server-side transaction verification is enabled.
+              <div className="mt-2 text-xs font-bold text-emerald-300/80">
+                ✓ Server verified the 0.1 test SUI payment. This payment unlocks one competitive attempt in this browser session.
               </div>
-            ) : null}
+            ) : (
+              <div className="mt-2 text-xs text-white/40">
+                Pay and verify 0.1 test SUI before starting a competitive attempt.
+              </div>
+            )}
           </div>
         ) : null}
 
@@ -360,7 +371,7 @@ export default function BrewCompetition() {
             <button
               type="button"
               onClick={startCompetitive}
-              disabled={!walletAddress || authenticating || (own?.attempts_played ?? 0) >= 3}
+              disabled={!walletAddress || authenticating || paidEntryRequired || (own?.attempts_played ?? 0) >= 3}
               className="w-full rounded-2xl bg-sky-400 px-5 py-4 font-black text-slate-950 transition hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {authenticating
@@ -369,6 +380,8 @@ export default function BrewCompetition() {
                 ? "CONNECT WALLET TO COMPETE"
                 : (own?.attempts_played ?? 0) >= 3
                 ? "3 / 3 ATTEMPTS USED"
+                : paidEntryRequired
+                ? "PAY 0.1 TEST SUI TO UNLOCK"
                 : `START COMPETITIVE BREW · ${3 - (own?.attempts_played ?? 0)} LEFT`}
             </button>
           ) : (
