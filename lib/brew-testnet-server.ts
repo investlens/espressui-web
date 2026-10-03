@@ -30,6 +30,13 @@ export async function verifyBrewTestnetEntry({
     baseUrl: TESTNET_RPC,
   });
 
+  // The wallet can return a digest before indexed reads are ready.
+  // Wait for the testnet node to expose the transaction before verifying it.
+  await client.waitForTransaction({
+    digest,
+    timeout: 15_000,
+  });
+
   const result = await client.getTransaction({
     digest,
     include: {
