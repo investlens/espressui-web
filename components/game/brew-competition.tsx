@@ -37,6 +37,7 @@ export default function BrewCompetition() {
 
   const [battle, setBattle] = useState<Battle | null>(null);
   const [leaders, setLeaders] = useState<Leader[]>([]);
+  const [totalVerifiedEntries, setTotalVerifiedEntries] = useState(0);
   const [remaining, setRemaining] = useState(0);
   const [loading, setLoading] = useState(true);
   const [authenticating, setAuthenticating] = useState(false);
@@ -95,6 +96,7 @@ export default function BrewCompetition() {
   const loadLeaderboard = useCallback(async () => {
     if (!battle?.id) {
       setLeaders([]);
+      setTotalVerifiedEntries(0);
       return;
     }
 
@@ -111,6 +113,7 @@ export default function BrewCompetition() {
       }
 
       setLeaders(json.leaderboard ?? []);
+      setTotalVerifiedEntries(json.totalVerifiedEntries ?? 0);
     } catch (error) {
       console.error("[BrewCompetition] leaderboard load failed:", error);
     }
@@ -354,6 +357,13 @@ export default function BrewCompetition() {
   const own = ownIndex >= 0 ? leaders[ownIndex] : null;
   const cutoff = leaders.length >= 10 ? leaders[9].best_score : null;
 
+  const livePoolSui = totalVerifiedEntries * 0.1;
+  const firstPrizeSui = livePoolSui * 0.4;
+  const secondPrizeSui = livePoolSui * 0.3;
+  const thirdPrizeSui = livePoolSui * 0.25;
+  const buybackBurnSui = livePoolSui * 0.025;
+  const marketingSui = livePoolSui * 0.025;
+
   return (
     <div className="space-y-8">
       <section className="rounded-[28px] border border-white/10 bg-white/[0.035] p-5 md:p-8">
@@ -374,14 +384,28 @@ export default function BrewCompetition() {
             </p>
           </div>
 
-          <div className="min-w-[190px] rounded-2xl border border-sky-400/20 bg-sky-400/[0.06] px-5 py-4">
-            <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-sky-300">
-              <Timer size={15} />
-              ROUND ENDS IN
+          <div className="grid min-w-[280px] grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[430px]">
+            <div className="rounded-2xl border border-sky-400/20 bg-sky-400/[0.06] px-5 py-4">
+              <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-sky-300">
+                <Timer size={15} />
+                ROUND ENDS IN
+              </div>
+
+              <div className="mt-2 text-4xl font-black tabular-nums text-white">
+                {loading ? "--:--" : formatTime(remaining)}
+              </div>
             </div>
 
-            <div className="mt-2 text-4xl font-black tabular-nums text-white">
-              {loading ? "--:--" : formatTime(remaining)}
+            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.06] px-5 py-4">
+              <div className="text-xs font-bold tracking-widest text-emerald-300">
+                LIVE PRIZE POOL
+              </div>
+              <div className="mt-2 text-4xl font-black tabular-nums text-white">
+                {livePoolSui.toFixed(2)} SUI
+              </div>
+              <div className="mt-1 text-[11px] text-white/45">
+                {totalVerifiedEntries} verified {totalVerifiedEntries === 1 ? "entry" : "entries"} this round
+              </div>
             </div>
           </div>
         </div>
@@ -391,6 +415,35 @@ export default function BrewCompetition() {
           <Stat label="YOUR RANK" value={ownIndex >= 0 ? `#${ownIndex + 1}` : "—"} />
           <Stat label="TOP 10 CUTOFF" value={cutoff !== null ? String(cutoff) : "OPEN"} />
           <Stat label="ATTEMPTS" value={own ? `${own.attempts_played} / 3` : "0 / 3"} />
+        </div>
+
+
+        <div className="mt-5 rounded-2xl border border-white/[0.08] bg-black/20 p-4 md:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div className="text-xs font-black tracking-[0.18em] text-white/50">
+                CURRENT ROUND PAYOUTS
+              </div>
+              <div className="mt-1 text-sm text-white/55">
+                95% to the top 3 · 5% supports the EspresSUI ecosystem
+              </div>
+            </div>
+            <div className="text-xs font-bold text-sky-300">
+              0.1 SUI PER COMPETITIVE ENTRY
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-5">
+            <PrizeStat label="🥇 1ST · 40%" value={firstPrizeSui} />
+            <PrizeStat label="🥈 2ND · 30%" value={secondPrizeSui} />
+            <PrizeStat label="🥉 3RD · 25%" value={thirdPrizeSui} />
+            <PrizeStat label="🔥 BURN · 2.5%" value={buybackBurnSui} />
+            <PrizeStat label="📣 MARKETING · 2.5%" value={marketingSui} />
+          </div>
+
+          <div className="mt-3 text-[11px] leading-5 text-white/35">
+            Testnet beta: the live pool currently updates from completed verified competitive entries for this hourly round.
+          </div>
         </div>
 
         <div className="mt-5 flex items-center gap-2 text-sm text-white/55">
@@ -588,6 +641,19 @@ function Stat({
       </div>
 
       <div className="mt-2 text-2xl font-black text-white">{value}</div>
+    </div>
+  );
+}
+
+function PrizeStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-3">
+      <div className="text-[10px] font-bold tracking-[0.12em] text-white/40">
+        {label}
+      </div>
+      <div className="mt-1 text-lg font-black tabular-nums text-white">
+        {value.toFixed(2)} SUI
+      </div>
     </div>
   );
 }
