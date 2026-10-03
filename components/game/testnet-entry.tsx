@@ -65,6 +65,26 @@ export default function TestnetEntry({ onPaid }: Props) {
       }
 
       const nextDigest = result.Transaction.digest;
+
+      const verifyResponse = await fetch("/api/competitive/entry/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          walletAddress: account.address,
+          digest: nextDigest,
+        }),
+      });
+
+      const verified = await verifyResponse.json();
+
+      if (!verifyResponse.ok || !verified.verified) {
+        throw new Error(
+          verified.error || "Testnet payment could not be verified."
+        );
+      }
+
       setDigest(nextDigest);
       onPaid?.(nextDigest);
     } catch (cause) {
