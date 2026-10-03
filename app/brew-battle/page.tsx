@@ -30,9 +30,18 @@ export default function BrewBattlePage() {
           </p>
 
           <div className="coming-pill">
-          <span className="live-dot" />
-          BREW ARENA LIVE · HOURLY BATTLE
-        </div>
+            <span className="live-dot" />
+            BREW ARENA LIVE · HOURLY BATTLE
+          </div>
+
+          <div className="mt-5">
+            <a
+              href="/brew-battle/results"
+              className="inline-flex items-center rounded-xl border border-sky-400/30 px-4 py-3 text-sm font-bold text-sky-300"
+            >
+              View Winners &amp; On-chain Payouts →
+            </a>
+          </div>
         </div>
       </section>
 
